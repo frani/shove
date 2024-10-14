@@ -1,0 +1,23 @@
+services:
+  shove:
+    build:
+      context: .
+      target: final
+    container_name: shove
+    volumes:
+      - ./shove/webpush:/etc/shove/webpush
+    command: >
+      shove \
+      -api-addr localhost:8322 \
+      -queue-redis redis://redis:6379 \
+      -webpush-vapid-keys-file /etc/shove/webpush/vapid-keys.json
+    depends_on:
+      - redis
+    ports:
+      - 8322:8322
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - ./shove/redis/data:/data
+    ports:
+      - 6379:6379
