@@ -9,11 +9,13 @@ This is the replacement for [Pulsus](https://github.com/pennersr/pulsus) which h
 ## Overview
 
 Design:
+
 - Asynchronous: a push client can just fire & forget.
 - Multiple workers per push service.
 - Less moving parts: when using Redis, you can push directly to the queue, bypassing the need for the Shove server to be up and running.
 
 Supported push services:
+
 - APNS
 - Email: supports automatic creation of email digests in case the rate limit
   is exceeded
@@ -24,19 +26,18 @@ Supported push services:
 - Web Push
 
 Features:
+
 - Feedback: asynchronously receive information on invalid device tokens.
 - Queueing: both in-memory and persistent via Redis.
 - Exponential back-off in case of failure.
 - Prometheus support.
 - Squashing of messages in case rate limits are exceeded.
 
-
 ## Why?
 
 - https://github.com/appleboy/gorush/issues/386#issuecomment-479191179
 
 - https://github.com/mercari/gaurun/issues/115
-
 
 ## Usage
 
@@ -86,9 +87,10 @@ Usage:
             VAPID public key
       -webpush-vapid-public-key string
             VAPID public key
+      -webpush-vapid-keys-file string
+            VAPID keys file path
       -webpush-workers int
             The number of workers pushing Web messages (default 8)
-
 
 Start the server:
 
@@ -97,16 +99,14 @@ Start the server:
         -queue-redis redis://redis:6379 \
         -fcm-credentials-file /etc/shove/fcm/credentials.json \
         -apns-certificate-path /etc/shove/apns/production/bundle.pem -apns-sandbox-certificate-path /etc/shove/apns/sandbox/bundle.pem \
-        -webpush-vapid-public-key=$VAPID_PUBLIC_KEY -webpush-vapid-private-key=$VAPID_PRIVATE_KEY \
+        -webpush-vapid-key-file=/etc/shove/webpush/vapid-keys.json \
         -telegram-bot-token $TELEGRAM_BOT_TOKEN
-
 
 ### APNS
 
 Push an APNS notification:
 
     $ curl  -i  --data '{"service": "apns", "headers": {"apns-priority": 10, "apns-topic": "com.shove.app"}, "payload": {"aps": { "alert": "hi"}}, "token": "81b8ecff8cb6d22154404d43b9aeaaf6219dfbef2abb2fe313f3725f4505cb47"}' http://localhost:8322/api/push/apns
-
 
 A successful push results in:
 
@@ -116,7 +116,6 @@ A successful push results in:
     Content-Type: text/plain; charset=utf-8
 
     OK
-
 
 ### FCM
 
@@ -134,7 +133,6 @@ Or, post JSON:
 
     $ curl  -i  --data '{"url": "http://localhost:8000/api/webhook", "headers": {"foo": "bar"}, "data": {"hello": "world!"}}' http://localhost:8322/api/push/webhook
 
-
 ### WebPush
 
 Push a WebPush notification:
@@ -144,7 +142,6 @@ Push a WebPush notification:
 The subscription (serialized as a JSON string) is used for receiving
 feedback. Alternatively, you can specify an optional `token` parameter as done
 in the example above.
-
 
 ### Telegram
 
@@ -157,11 +154,9 @@ Shove requires strings to be passed. For users that disconnected from your bot
 the chat ID will be communicated back through the feedback mechanism. Here, the
 token will equal the unreachable chat ID.
 
-
 ### Receive Feedback
 
 Outdated/invalid tokens are communicated back. To receive those, you can periodically query the feedback channel to receive token feedback, and remove those from your database:
-
 
     $ curl -X POST 'http://localhost:8322/api/feedback'
 
@@ -172,7 +167,6 @@ Outdated/invalid tokens are communicated back. To receive those, you can periodi
          "reason":"invalid"}
       ]
     }
-
 
 ### Email
 
@@ -190,7 +184,7 @@ automatically digested.
 
 Push an email:
 
-	$ curl -i -X POST --data @./scripts/email.json http://localhost:8322/api/push/email
+    $ curl -i -X POST --data @./scripts/email.json http://localhost:8322/api/push/email
 
 If you send too many emails, you'll notice that they are digested, and at a
 later time, one digest mail is being sent:
@@ -208,13 +202,12 @@ later time, one digest mail is being sent:
     2021/03/23 21:16:12 email: Rate to john@doe.org exceeded, email digested
     2021/03/23 21:16:18 email: Sending digest email
 
-
 ### Redis Queues
 
 Shove is being used to push a high volume of notifications in a production
 environment, consisting of various microservices interacting together. In such a
 scenario, it is important that the various services are not too tightly coupled
-to one another.  For that purpose, Shove offers the ability to post
+to one another. For that purpose, Shove offers the ability to post
 notifications directly to a Redis queue.
 
 Posting directly to the Redis queue, instead of using the HTTP service
@@ -225,7 +218,6 @@ Shove intentionally tries to make as little assumptions on the notification
 payloads being pushed, as they are mostly handed over as is to the upstream
 services. So, when using Shove this way, the client is responsible for handing
 over a raw payload. Here's an example:
-
 
     package main
 
@@ -262,7 +254,6 @@ over a raw payload. Here's an example:
     		log.Fatal(err)
     	}
     }
-
 
 ## Status
 
