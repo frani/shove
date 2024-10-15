@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.21
+ARG GO_VERSION=1.23.1
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS build
 WORKDIR /src
 
@@ -11,7 +11,7 @@ ARG TARGETARCH
 
 RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
-    CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/server ./cmd/shove
+    CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/shove ./cmd/shove/main.go
 
 FROM alpine:latest AS final
 
@@ -33,8 +33,8 @@ RUN adduser \
     appuser
 USER appuser
 
-COPY --from=build /bin/server /bin/
+COPY --from=build /bin/shove /bin/shove
 
 EXPOSE 8322
 
-ENTRYPOINT [ "/bin/server" ]
+CMD ["/bin/shove"]
