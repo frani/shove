@@ -39,7 +39,7 @@ var webhookWorkers = flag.Int("webhook-workers", 0, "The number of workers pushi
 
 var webPushVAPIDPublicKey = flag.String("webpush-vapid-public-key", "", "VAPID public key")
 var webPushVAPIDPrivateKey = flag.String("webpush-vapid-private-key", "", "VAPID private key")
-var webPushVAPIDKeysFile = flag.String("webpush-vapid-keys-json", "", "JSON file containing VAPID keys")
+var webPushVAPIDKeysJSON = flag.String("webpush-vapid-keys-json", "", "JSON file containing VAPID keys")
 var webPushWorkers = flag.Int("webpush-workers", 8, "The number of workers pushing Web messages")
 
 var telegramBotToken = flag.String("telegram-bot-token", "", "Telegram bot token")
@@ -142,13 +142,18 @@ func main() {
 		}
 	}
 
-	// WebPush
-	// 1. If JSON file exists, read it and set both private and public key
-	// 2. If JSON file doesn't exist, check if both private and public keys are set
-	// 3. If one of option before happens, Create WebPush Service
-	// 4. Add to server
-	if *webPushVAPIDKeysFile != "" {
-		content, err := os.ReadFile(*webPushVAPIDKeysFile)
+	if *webPushVAPIDPrivateKey != "" {
+		web, err := webpush.NewWebPush(*webPushVAPIDPublicKey, *webPushVAPIDPrivateKey, newServiceLogger("webpush"))
+		if err != nil {
+			slog.Error("Failed to setup WebPush service", "error", err)
+			os.Exit(1)
+		}
+		if err := s.AddService(web, *webPushWorkers, services.SquashConfig{}); err != nil {
+			slog.Error("Failed to add WebPush service", "error", err)
+			os.Exit(1)
+		}
+	} else if *webPushVAPIDKeysJSON != "" {
+		content, err := os.ReadFile(*webPushVAPIDKeysJSON)
 		if err != nil {
 			slog.Error("Failed to read WebPush VAPID keys file", "error", err)
 			os.Exit(1)
@@ -171,19 +176,7 @@ func main() {
 			slog.Error("Failed to add WebPush service", "error", err)
 			os.Exit(1)
 		}
-	} else if *webPushVAPIDPrivateKey != "" {
-		web, err := webpush.NewWebPush(*webPushVAPIDPublicKey, *webPushVAPIDPrivateKey, newServiceLogger("webpush"))
-		if err != nil {
-			slog.Error("Failed to setup WebPush service", "error", err)
-			os.Exit(1)
-		}
-		if err := s.AddService(web, *webPushWorkers, services.SquashConfig{}); err != nil {
-			slog.Error("Failed to add WebPush service", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	if *telegramBotToken != "" {
+	} else if *telegramBotToken != "" {
 		tg, err := telegram.NewTelegramService(*telegramBotToken, newServiceLogger("telegram"))
 		if err != nil {
 			slog.Error("Failed to setup Telegram service", "error", err)
