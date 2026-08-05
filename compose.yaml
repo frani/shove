@@ -4,12 +4,6 @@ services:
       context: .
       target: final
     container_name: shove
-    volumes:
-      # Mount credentials as needed, e.g.:
-      # - ./shove/fcm:/etc/shove/fcm:ro
-      # - ./shove/apns:/etc/shove/apns:ro
-      # - ./shove/webpush:/etc/shove/webpush:ro
-      - ./shove:/etc/shove:ro
     command:
       [
         "/bin/shove",
