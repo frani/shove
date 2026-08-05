@@ -103,6 +103,65 @@ Start the server:
         -telegram-bot-token $TELEGRAM_BOT_TOKEN
 
 
+### Docker
+
+Build the image:
+
+    $ docker build -t shove .
+
+Run a container. Bind to `0.0.0.0` so the API is reachable from the host, and
+mount credential files into the container:
+
+    $ docker run --rm -p 8322:8322 \
+        -v $PWD/shove/fcm:/etc/shove/fcm:ro \
+        -v $PWD/shove/apns:/etc/shove/apns:ro \
+        -v $PWD/shove/webpush:/etc/shove/webpush:ro \
+        shove \
+        /bin/shove \
+        -api-addr 0.0.0.0:8322 \
+        -fcm-credentials-file /etc/shove/fcm/credentials.json \
+        -apns-certificate-path /etc/shove/apns/production/bundle.pem \
+        -apns-sandbox-certificate-path /etc/shove/apns/sandbox/bundle.pem \
+        -webpush-vapid-keys-file /etc/shove/webpush/vapid-keys.json
+
+For a persistent queue, point `-queue-redis` at a Redis instance reachable from
+the container (for example `redis://host.docker.internal:6379` on Docker
+Desktop).
+
+
+### Docker Compose
+
+The repository includes a `compose.yaml` that builds Shove and runs it together
+with Redis:
+
+    $ docker compose up --build
+
+This starts the API on `http://localhost:8322` with
+`-queue-redis redis://redis:6379`. Enable push services by mounting
+credentials and extending the `command` in `compose.yaml`, for example:
+
+    services:
+      shove:
+        volumes:
+          - ./shove/fcm:/etc/shove/fcm:ro
+          - ./shove/apns:/etc/shove/apns:ro
+          - ./shove/webpush:/etc/shove/webpush:ro
+        command:
+          [
+            "/bin/shove",
+            "-api-addr", "0.0.0.0:8322",
+            "-queue-redis", "redis://redis:6379",
+            "-fcm-credentials-file", "/etc/shove/fcm/credentials.json",
+            "-apns-certificate-path", "/etc/shove/apns/production/bundle.pem",
+            "-apns-sandbox-certificate-path", "/etc/shove/apns/sandbox/bundle.pem",
+            "-webpush-vapid-keys-file", "/etc/shove/webpush/vapid-keys.json",
+            "-telegram-bot-token", "${TELEGRAM_BOT_TOKEN}",
+          ]
+
+Keep secrets out of the image: mount them at runtime (as above) or pass string
+secrets via environment variables / Compose interpolation.
+
+
 ### APNS
 
 Push an APNS notification:
